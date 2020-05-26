@@ -3,16 +3,30 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 
 
-def get_dataframe(league):
+def get_dataframe(league_id):
+    """
+    Query the DB and return a Pandas dataframe with all matches data related to league_id.
+
+    :param league_id: league ID
+    :return: a Pandas dataframe with all matches data related to league_id
+    """
     conn = sqlite3.connect("soccer.sqlite")
-    soccer_df = pd.read_sql("select * from match where league_id = {}".format(league), conn)
+    soccer_df = pd.read_sql("select id, country_id, league_id, season, stage, date, match_api_id, home_team_api_id, "
+                            "away_team_api_id, home_team_goal, away_team_goal, goal, shoton, shotoff, possession "
+                            "from match where league_id = {}".format(league_id), conn)
     conn.close()
     return soccer_df
 
 
 def save_data_to_csv(soccer_df):
-    print("len(soccer_df): %s " % len(soccer_df))
-    print("soccer_df: %s " % soccer_df)
+    """
+    Saves relevant data in the dataframe to a CSV file.
+
+    :param soccer_df: dataframe
+    :return: None
+    """
+    print("\nlen(soccer_df): %s " % len(soccer_df))
+    print("\nsoccer_df: %s " % soccer_df)
     possession_elapsed_array = [0] * len(soccer_df)
     possession_home_array = [0] * len(soccer_df)
     possession_away_array = [0] * len(soccer_df)
@@ -41,6 +55,11 @@ def save_data_to_csv(soccer_df):
 
 
 def main():
+    """
+    Main method.
+
+    :return: None
+    """
     soccer_df = get_dataframe(1729)
     save_data_to_csv(soccer_df)
 

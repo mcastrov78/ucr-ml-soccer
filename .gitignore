@@ -203,3 +203,4 @@ fabric.properties
 
 # dataset files
 *.sqlite
+*.csv

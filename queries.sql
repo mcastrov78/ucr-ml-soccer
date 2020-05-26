@@ -20,7 +20,7 @@ select * from team where team_long_name like "%juventus%" -- id=20522 / team_api
 
 select count(*) from team_attributes --1,458
 select * from team_attributes
-select * from team_attributes where team_api_id = 9885
+select * from team_attributes where team_api_id = 9885 order by date
 
 
 -- EPL
@@ -55,7 +55,7 @@ select * from team where team_long_name like "%swansea%" -- team_api_id=10003
 select * from match where league_id = 1729 and home_team_api_id = 8197
 select * from match where league_id = 1729 and away_team_api_id = 8197
 
--- LEI games in 2018/2019
+-- LEI games in 2015/2016
 select m.id, m.league_id, m.season, m.stage, m.date, m.match_api_id, m.home_team_api_id, m.away_team_api_id, t1.team_long_name as HOME, t2.team_long_name as AWAY, m.home_team_goal, m.away_team_goal
 from match as m, team as t1, team as t2
 where m.league_id = 1729 and m.season = "2015/2016"
