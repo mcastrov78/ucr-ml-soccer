@@ -184,7 +184,7 @@ def train_nn(iterations, nn_model, optimizer, nn_loss_fn, x_tensor, y_tensor, in
         if it % 100 == 0: print("N: %s\t | Loss: %f\t" % (it, loss))
 
 
-def nn_model_test_set(x_tensor, y_tensor, nn_model, nn_loss_fn, test_set_name):
+def nn_model_set(x_tensor, y_tensor, nn_model, nn_loss_fn, test_set_name):
     """
     Calculate predicted Y values and the loss against real Y values.
     :param x_tensor: X tensor
@@ -197,6 +197,7 @@ def nn_model_test_set(x_tensor, y_tensor, nn_model, nn_loss_fn, test_set_name):
     y_predic = nn_model(x_tensor.view(-1, 1))
     model_loss = nn_loss_fn(y_predic, y_tensor.view(-1, 1))
     print("\nLOSS for %s: %s " % (test_set_name, model_loss))
+    return y_predic
 
 
 def plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor=None, fn_y_tensor=None, x_label="X", y_label="Y", fig_name="Figure"):
@@ -239,6 +240,17 @@ def nn_plot_test_test(x_tensor, y_tensor, nn_model, set_name):
     plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor, fn_y_tensor.detach().numpy(), set_name)
 
 
+def print_statistics(x_tensor, y_tensor):
+    # print some info and  statistics
+    print("\nx_tensor(%s): %s" % (x_tensor.size(), x_tensor))
+    print("y_tensor(%s): %s" % (y_tensor.size(), y_tensor))
+    print("Max Pos: %s - GD: %s" % (torch.max(x_tensor), torch.max(y_tensor.type(torch.FloatTensor))))
+    print("Min Pos: %s - GD: %s" % (torch.min(x_tensor), torch.min(y_tensor.type(torch.FloatTensor))))
+    print("Mean Pos: %s - GD: %s" % (torch.mean(x_tensor), torch.mean(y_tensor.type(torch.FloatTensor))))
+    print("StdDev Pos: %s - GD: %s" % (torch.std(x_tensor), torch.std(y_tensor.type(torch.FloatTensor))))
+    print("Corr Pos-GD: %s" % (np.corrcoef(x_tensor, y_tensor.type(torch.FloatTensor))))
+
+
 def main():
     """
     Main method.
@@ -249,21 +261,42 @@ def main():
     save_data_to_csv(soccer_df, CSV_FILENAME)
 
     x_tensor, y_tensor = read_csv_enhanced(CSV_FILENAME, ("goal_diff", "possession_home"))
-    print("x_tensor(%s): %s" % (x_tensor.size(), x_tensor))
-    print("y_tensor(%s): %s" % (y_tensor.size(), y_tensor))
+    x_tensor = x_tensor.view(-1)
+    print_statistics(x_tensor, y_tensor)
 
     x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
-
-    nn_model = nn.Linear(1, 1)
-    optimizer = optim.Adam(nn_model.parameters(), lr=1e-1)
+    #nn_model = nn.Linear(1, 1)
+    nn_model = TwoLayerNN(1, 20, 1, nn.ReLU())
+    optimizer = optim.Adam(nn_model.parameters(), lr=1e-2)
     nn_loss_fn = nn.MSELoss()
     train_nn(3000, nn_model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
 
     # model each set and calculate loss
-    nn_model_test_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
+    nn_model_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
     nn_plot_test_test(x_train_tensor, y_train_tensor, nn_model, "TRAIN SET")
 
-    nn_model_test_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
+    nn_model_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
+    nn_plot_test_test(x_test_tensor, y_test_tensor, nn_model, "TEST SET")
+
+    # filter OUT matches where 40 >= possesion <= 60
+    filtered_x_tensor = torch.cat(((x_tensor[x_tensor <= 40]), (x_tensor[x_tensor >= 60])), 0)
+    filtered_y_tensor = torch.cat(((y_tensor[x_tensor <= 40]), (y_tensor[x_tensor >= 60])), 0)
+    print("filtered_x_tensor(%s): %s" % (filtered_x_tensor.shape, filtered_x_tensor))
+    print("filtered_y_tensor(%s): %s" % (filtered_y_tensor.shape, filtered_y_tensor))
+
+    print_statistics(filtered_x_tensor, filtered_x_tensor)
+
+    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(filtered_x_tensor, filtered_y_tensor)
+    nn_model = TwoLayerNN(1, 20, 1, nn.ReLU())
+    optimizer = optim.Adam(nn_model.parameters(), lr=1e-2)
+    nn_loss_fn = nn.MSELoss()
+    train_nn(3000, nn_model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
+
+    # model each set and calculate loss
+    nn_model_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
+    nn_plot_test_test(x_train_tensor, y_train_tensor, nn_model, "TRAIN SET")
+
+    nn_model_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
     nn_plot_test_test(x_test_tensor, y_test_tensor, nn_model, "TEST SET")
 
 
