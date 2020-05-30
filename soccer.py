@@ -2,6 +2,10 @@ import sqlite3
 import pandas as pd
 import xml.etree.ElementTree as ET
 import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import matplotlib.pyplot as plt
 
 DB_FILENAME = "soccer.sqlite"
 CSV_FILENAME = "soccer.csv"
@@ -119,6 +123,122 @@ def create_train_test_sets(x_tensor, y_tensor):
     return x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor
 
 
+class TwoLayerNN(nn.Module):
+    """
+    Two layer NN.
+    """
+
+    def __init__(self, input_n, hidden_n, output_n, activation_fn):
+        """
+        Initialize NN.
+        :param input_n: number of inputs
+        :param hidden_n: number of hidden neurons
+        :param output_n: number of outputs
+        :param activation_fn: activation function for the hidden layer
+        """
+        super(TwoLayerNN, self).__init__()
+        print("\n*** TwoLayerNN i: %s - h: %s - o: %s ***" % (input_n, hidden_n, output_n))
+        self.hidden_linear = nn.Linear(input_n, hidden_n)
+        self.hidden_activation = activation_fn
+        self.output_linear = nn.Linear(hidden_n, output_n)
+
+    def forward(self, input):
+        """
+        Pass the input through the NN layers.
+        :param input: input to the module
+        :return: output from the module
+        """
+        hidden_t = self.hidden_linear(input)
+        activated_t = self.hidden_activation(hidden_t)
+        output_t = self.output_linear(activated_t)
+        return output_t
+
+
+def train_nn(iterations, nn_model, optimizer, nn_loss_fn, x_tensor, y_tensor, input_n, output_n):
+    """
+    Train Neural Network.
+    :param iterations: epochs
+    :param nn_model: NN model
+    :param optimizer: optimizer
+    :param nn_loss_fn: loss function
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :param input_n: number of inputs
+    :param output_n: number of outputs
+    :return:
+    """
+    print("\n*** TRAINING NN ***")
+    print("\nx_tensor (%s): %s" % (x_tensor.shape, x_tensor))
+    x_tensor_reshaped = x_tensor.view(-1, input_n)
+    print("\nx_tensor_reshaped (%s): %s" % (x_tensor_reshaped.shape, x_tensor_reshaped))
+
+    for it in range(1, iterations + 1):
+        y_tensor_pred = nn_model(x_tensor_reshaped)
+        y_tensor_pred_reshaped = y_tensor_pred.view(-1, output_n)
+        loss = nn_loss_fn(y_tensor.view(-1, output_n), y_tensor_pred_reshaped)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if it % 100 == 0: print("N: %s\t | Loss: %f\t" % (it, loss))
+
+
+def nn_model_test_set(x_tensor, y_tensor, nn_model, nn_loss_fn, test_set_name):
+    """
+    Calculate predicted Y values and the loss against real Y values.
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :param nn_model: NN model
+    :param nn_loss_fn:  loss function
+    :param test_set_name: test set name for displaying purposes
+    :return: nothing
+    """
+    y_predic = nn_model(x_tensor.view(-1, 1))
+    model_loss = nn_loss_fn(y_predic, y_tensor.view(-1, 1))
+    print("\nLOSS for %s: %s " % (test_set_name, model_loss))
+
+
+def plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor=None, fn_y_tensor=None, x_label="X", y_label="Y", fig_name="Figure"):
+    """
+    Plot a given test set.
+
+    :param x_tensor: tensor X
+    :param y_tensor: tensor y
+    :param fn_x_tensor: tensor x for function line plotting
+    :param fn_y_tensor: tensor y for function line plotting
+    :param y_label: X-axis label
+    :param x_label: X-axis label
+    :param fig_name: figure name
+    """
+    print("\n*** plot_data_set_and_model: %s ***" % fig_name)
+    plt.figure(num=fig_name)
+    plt.scatter(x_tensor, y_tensor)
+    if fn_y_tensor is not None:
+        x_tensor = x_tensor
+        if fn_x_tensor is not None:
+            x_tensor = fn_x_tensor
+        plt.plot(x_tensor, fn_y_tensor, color="red")
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.show()
+
+
+def nn_plot_test_test(x_tensor, y_tensor, nn_model, set_name):
+    """
+    Scatterplot test set X and Y values and the function graph.
+
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :param nn_model: NN model
+    :param set_name: test set name for displaying purposes
+    :return: nothing
+    """
+    fn_x_tensor = torch.tensor(np.linspace(x_tensor.min(), x_tensor.max(), 1000), dtype=torch.float)
+    fn_y_tensor = nn_model(fn_x_tensor.view(-1, 1))
+    plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor, fn_y_tensor.detach().numpy(), set_name)
+
+
 def main():
     """
     Main method.
@@ -133,6 +253,19 @@ def main():
     print("y_tensor(%s): %s" % (y_tensor.size(), y_tensor))
 
     x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
+
+    nn_model = nn.Linear(1, 1)
+    optimizer = optim.Adam(nn_model.parameters(), lr=1e-1)
+    nn_loss_fn = nn.MSELoss()
+    train_nn(3000, nn_model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
+
+    # model each set and calculate loss
+    nn_model_test_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
+    nn_plot_test_test(x_train_tensor, y_train_tensor, nn_model, "TRAIN SET")
+
+    nn_model_test_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
+    nn_plot_test_test(x_test_tensor, y_test_tensor, nn_model, "TEST SET")
+
 
 if __name__ == "__main__":
     main()
