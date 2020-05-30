@@ -41,10 +41,11 @@ def save_data_to_csv(soccer_df, csv_filename):
     possession_elapsed_array = [0] * len(soccer_df)
     possession_home_array = [0] * len(soccer_df)
     possession_away_array = [0] * len(soccer_df)
+    shots_on_diff_array = [0] * len(soccer_df)
     goal_diff_array = [0] * len(soccer_df)
 
     for row_number in range(len(soccer_df)):
-        # process possession value
+        # *** POSSESSION processing ***
         possession_tree = ET.fromstring(soccer_df.loc[row_number, "possession"])
         number_of_values = len(list(possession_tree))
 
@@ -59,20 +60,38 @@ def save_data_to_csv(soccer_df, csv_filename):
                     possession_home_array[row_number] = child.find("homepos").text
                     possession_away_array[row_number] = child.find("awaypos").text
 
-        # process score
+        # *** SHOTS ON processing ***
+        shoton_tree = ET.fromstring(soccer_df.loc[row_number, "shoton"])
+
+        home_team_api_id = str(soccer_df.loc[row_number, "home_team_api_id"])
+        away_team_api_id = str(soccer_df.loc[row_number, "away_team_api_id"])
+        shots_on = {home_team_api_id: 0, away_team_api_id: 0}
+        #print("\n-- home_team_api_id: %s - away_team_api_id: %s" % (home_team_api_id, away_team_api_id))
+
+        for child_number, child in enumerate(shoton_tree):
+            if child.find("team") is not None and child.find("id") is not None:
+                #print("team: %s - event: %s" % (child.find("team").text, child.find("id").text))
+                shots_on[child.find("team").text] += 1
+
+        shots_on_diff_array[row_number] = shots_on[home_team_api_id] - shots_on[away_team_api_id]
+        #print("shots_on: %s - DIFF: %s" % (shots_on, shots_on_diff_array[row_number]))
+
+        # *** SCORE processing ***
         home_team_goal = soccer_df.loc[row_number, "home_team_goal"]
         away_team_goal = soccer_df.loc[row_number, "away_team_goal"]
         goal_diff_array[row_number] = home_team_goal - away_team_goal
 
+    # add NEW columns to dataframe before creating th CSV file
     soccer_df["possession_elapsed"] = possession_elapsed_array
     soccer_df["possession_home"] = possession_home_array
     soccer_df["possession_away"] = possession_away_array
+    soccer_df["shots_on_diff"] = shots_on_diff_array
     soccer_df["goal_diff"] = goal_diff_array
 
     soccer_df.to_csv(csv_filename, index=False,
                      columns=["id", "country_id", "league_id", "season", "stage", "date", "match_api_id",
                               "home_team_api_id", "away_team_api_id", "home_team_goal", "away_team_goal",
-                              "possession_elapsed", "possession_home", "possession_away", "goal_diff"])
+                              "possession_elapsed", "possession_home", "possession_away", "shots_on_diff", "goal_diff"])
 
 
 def read_csv_enhanced(filename, columns):
