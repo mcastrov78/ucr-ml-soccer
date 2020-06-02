@@ -85,6 +85,9 @@ ORDER BY team_api_id, player_name
 
 -- OTHER FEATURES
 select * from match where country_id = 1729 -- 3040 games
+select id, country_id, league_id, season, stage, date, match_api_id, home_team_api_id, away_team_api_id, home_team_goal, away_team_goal, goal, shoton, shotoff, possession 
+from match where league_id = 1729
+                            
 select count(*) from match where country_id = 1729 and (possession is not null and length(trim(possession)) > 0) -- 3040 games
 select count(*) from match where country_id = 1729 and (goal is not null and length(trim(goal)) > 0) -- 3040 games
 select count(*) from match where country_id = 1729 and (shoton is not null and length(trim(shoton)) > 0) -- 3040 games

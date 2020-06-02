@@ -17,7 +17,7 @@ def get_dataframe(db_filename, league_id):
     Query the DB and return a Pandas dataframe with all matches data related to league_id.
 
     :param db_filename: DB filename to read from
-    :param league_id: league ID for wich we need matches data
+    :param league_id: league ID for which we need matches data
     :return: a Pandas dataframe with all matches data related to league_id
     """
     conn = sqlite3.connect(db_filename)
@@ -74,6 +74,7 @@ def save_data_to_csv(soccer_df, csv_filename):
                 shots_on[child.find("team").text] += 1
 
         shots_on_diff_array[row_number] = shots_on[home_team_api_id] - shots_on[away_team_api_id]
+        #shots_on_diff_array[row_number] = shots_on[home_team_api_id]
         #print("shots_on: %s - DIFF: %s" % (shots_on, shots_on_diff_array[row_number]))
 
         # *** SCORE processing ***
@@ -124,20 +125,20 @@ def create_train_test_sets(x_tensor, y_tensor):
     # create random permutation if integers from 0 to remaining_size and calculate index where training set ends
     random_perm = torch.randperm(x_tensor.shape[0])
     train_percent_index = (x_tensor.shape[0] * 80) // 100
-    print("\nrandom_perm (%s): %s" % (random_perm.shape, random_perm))
-    print("train_percent_index: %s" % train_percent_index)
+    #print("\nrandom_perm (%s): %s" % (random_perm.shape, random_perm))
+    #print("train_percent_index: %s" % train_percent_index)
 
     # create randomized training sets
     x_train_tensor = x_tensor[random_perm[:train_percent_index]]
     y_train_tensor = y_tensor[random_perm[:train_percent_index]]
-    print("\nx_train_tensor (%s): %s" % (x_train_tensor.shape, x_train_tensor))
-    print("y_train_tensor (%s): %s" % (y_train_tensor.shape, y_train_tensor))
+    #print("\nx_train_tensor (%s): %s" % (x_train_tensor.shape, x_train_tensor))
+    #print("y_train_tensor (%s): %s" % (y_train_tensor.shape, y_train_tensor))
 
     # create randomized testing sets
     x_test_tensor = x_tensor[random_perm[train_percent_index:]]
     y_test_tensor = y_tensor[random_perm[train_percent_index:]]
-    print("\nx_test_tensor (%s): %s ..." % (x_test_tensor.shape, x_test_tensor[:10]))
-    print("y_test_tensor (%s): %s ..." % (y_test_tensor.shape, y_test_tensor[:10]))
+    #print("\nx_test_tensor (%s): %s ..." % (x_test_tensor.shape, x_test_tensor[:10]))
+    #print("y_test_tensor (%s): %s ..." % (y_test_tensor.shape, y_test_tensor[:10]))
 
     return x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor
 
@@ -187,9 +188,9 @@ def train_nn(iterations, nn_model, optimizer, nn_loss_fn, x_tensor, y_tensor, in
     :return:
     """
     print("\n*** TRAINING NN ***")
-    print("\nx_tensor (%s): %s" % (x_tensor.shape, x_tensor))
+    #print("\nx_tensor (%s): %s" % (x_tensor.shape, x_tensor))
     x_tensor_reshaped = x_tensor.view(-1, input_n)
-    print("\nx_tensor_reshaped (%s): %s" % (x_tensor_reshaped.shape, x_tensor_reshaped))
+    #print("\nx_tensor_reshaped (%s): %s" % (x_tensor_reshaped.shape, x_tensor_reshaped))
 
     for it in range(1, iterations + 1):
         y_tensor_pred = nn_model(x_tensor_reshaped)
@@ -201,22 +202,6 @@ def train_nn(iterations, nn_model, optimizer, nn_loss_fn, x_tensor, y_tensor, in
         optimizer.step()
 
         if it % 100 == 0: print("N: %s\t | Loss: %f\t" % (it, loss))
-
-
-def nn_model_set(x_tensor, y_tensor, nn_model, nn_loss_fn, test_set_name):
-    """
-    Calculate predicted Y values and the loss against real Y values.
-    :param x_tensor: X tensor
-    :param y_tensor: Y tensor
-    :param nn_model: NN model
-    :param nn_loss_fn:  loss function
-    :param test_set_name: test set name for displaying purposes
-    :return: nothing
-    """
-    y_predic = nn_model(x_tensor.view(-1, 1))
-    model_loss = nn_loss_fn(y_predic, y_tensor.view(-1, 1))
-    print("\nLOSS for %s: %s " % (test_set_name, model_loss))
-    return y_predic
 
 
 def plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor=None, fn_y_tensor=None, x_label="X", y_label="Y", fig_name="Figure"):
@@ -244,7 +229,7 @@ def plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor=None, fn_y_tensor
     plt.show()
 
 
-def nn_plot_test_test(x_tensor, y_tensor, nn_model, set_name):
+def nn_plot_test_set(x_tensor, y_tensor, nn_model, set_name):
     """
     Scatterplot test set X and Y values and the function graph.
 
@@ -256,18 +241,80 @@ def nn_plot_test_test(x_tensor, y_tensor, nn_model, set_name):
     """
     fn_x_tensor = torch.tensor(np.linspace(x_tensor.min(), x_tensor.max(), 1000), dtype=torch.float)
     fn_y_tensor = nn_model(fn_x_tensor.view(-1, 1))
-    plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor, fn_y_tensor.detach().numpy(), set_name)
+    plot_data_set_and_function(x_tensor, y_tensor, fn_x_tensor, fn_y_tensor.detach().numpy(), fig_name=set_name)
 
 
 def print_statistics(x_tensor, y_tensor):
     # print some info and  statistics
-    print("\nx_tensor(%s): %s" % (x_tensor.size(), x_tensor))
-    print("y_tensor(%s): %s" % (y_tensor.size(), y_tensor))
-    print("Max Pos: %s - GD: %s" % (torch.max(x_tensor), torch.max(y_tensor.type(torch.FloatTensor))))
+    print("\nMax Pos: %s - GD: %s" % (torch.max(x_tensor), torch.max(y_tensor.type(torch.FloatTensor))))
     print("Min Pos: %s - GD: %s" % (torch.min(x_tensor), torch.min(y_tensor.type(torch.FloatTensor))))
     print("Mean Pos: %s - GD: %s" % (torch.mean(x_tensor), torch.mean(y_tensor.type(torch.FloatTensor))))
     print("StdDev Pos: %s - GD: %s" % (torch.std(x_tensor), torch.std(y_tensor.type(torch.FloatTensor))))
     print("Corr Pos-GD: %s" % (np.corrcoef(x_tensor, y_tensor.type(torch.FloatTensor))))
+
+
+def train_and_test_linear_possession(x_tensor, y_tensor):
+    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
+
+    model = nn.Linear(1, 1)
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
+    nn_loss_fn = nn.MSELoss()
+    print("\nmodel: %s" % model)
+    train_nn(3000, model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
+
+    # model each set and calculate loss
+    y_predic = model(x_train_tensor.view(-1, 1))
+    model_loss = nn_loss_fn(y_predic, y_train_tensor.view(-1, 1))
+    print("\nLOSS for Train Set (train_and_test_nn_possession): %s " % model_loss)
+    nn_plot_test_set(x_train_tensor, y_train_tensor, model, "LINEAR - TRAIN SET")
+
+    y_predic = model(x_test_tensor.view(-1, 1))
+    model_loss = nn_loss_fn(y_predic, y_test_tensor.view(-1, 1))
+    print("\nLOSS for Test Set (train_and_test_nn_possession): %s " % model_loss)
+    nn_plot_test_set(x_test_tensor, y_test_tensor, model, "LINEAR - TEST SET")
+
+
+def train_and_test_nn_possession(x_tensor, y_tensor):
+    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
+
+    model = TwoLayerNN(1, 20, 1, nn.ReLU())
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
+    loss_fn = nn.MSELoss()
+    print("\nmodel: %s" % model)
+    train_nn(3000, model, optimizer, loss_fn, x_train_tensor, y_train_tensor, 1, 1)
+
+    # model each set and calculate loss
+    y_predic = model(x_train_tensor.view(-1, 1))
+    model_loss = loss_fn(y_predic, y_train_tensor.view(-1, 1))
+    print("\nLOSS for Train Set (train_and_test_nn_possesion): %s " % model_loss)
+    nn_plot_test_set(x_train_tensor, y_train_tensor, model, "NN1 - TRAIN SET")
+
+    y_predic = model(x_test_tensor.view(-1, 1))
+    model_loss = loss_fn(y_predic, y_test_tensor.view(-1, 1))
+    print("\nLOSS for Test Set (train_and_test_nn_possesion): %s " % model_loss)
+    nn_plot_test_set(x_test_tensor, y_test_tensor, model, "NN1 - TEST SET")
+
+
+def train_and_test_nn_multi():
+    x_tensor, y_tensor = read_csv_enhanced(CSV_FILENAME, ("goal_diff", "possession_home", "shots_on_diff"))
+    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
+
+    model = TwoLayerNN(2, 20, 1, nn.ReLU())
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
+    loss_fn = nn.MSELoss()
+    print("\nmodel: %s" % model)
+    train_nn(3000, model, optimizer, loss_fn, x_train_tensor, y_train_tensor, 2, 1)
+
+    # model each set and calculate loss
+    y_predic = model(x_train_tensor.view(-1, 2))
+    model_loss = loss_fn(y_predic, y_train_tensor.view(-1, 1))
+    print("\nLOSS for Train Set (train_and_test_nn_multi): %s " % model_loss)
+    # nn_plot_test_test(x_train_tensor, y_train_tensor, model, "NN2 - TRAIN SET")
+
+    y_predic = model(x_test_tensor.view(-1, 2))
+    model_loss = loss_fn(y_predic, y_test_tensor.view(-1, 1))
+    print("\nLOSS for Train Set (train_and_test_nn_multi): %s " % model_loss)
+    # nn_plot_test_test(x_test_tensor, y_test_tensor, model, "NN2 - TEST SET")
 
 
 def main():
@@ -276,47 +323,29 @@ def main():
 
     :return: None
     """
+    # get dataframe from DB and save relevant data to a CSV file
     soccer_df = get_dataframe(DB_FILENAME, LEAGUE_ID)
     save_data_to_csv(soccer_df, CSV_FILENAME)
 
+    # predict based on a single feature: possession
     x_tensor, y_tensor = read_csv_enhanced(CSV_FILENAME, ("goal_diff", "possession_home"))
     x_tensor = x_tensor.view(-1)
     print_statistics(x_tensor, y_tensor)
 
-    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
-    #nn_model = nn.Linear(1, 1)
-    nn_model = TwoLayerNN(1, 20, 1, nn.ReLU())
-    optimizer = optim.Adam(nn_model.parameters(), lr=1e-2)
-    nn_loss_fn = nn.MSELoss()
-    train_nn(3000, nn_model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
+    train_and_test_linear_possession(x_tensor, y_tensor)
 
-    # model each set and calculate loss
-    nn_model_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
-    nn_plot_test_test(x_train_tensor, y_train_tensor, nn_model, "TRAIN SET")
+    train_and_test_nn_possession(x_tensor, y_tensor)
 
-    nn_model_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
-    nn_plot_test_test(x_test_tensor, y_test_tensor, nn_model, "TEST SET")
-
-    # filter OUT matches where 40 >= possesion <= 60
+    # predict based on a single feature: possession, BUT filter OUT matches where 40 >= possession <= 60
     filtered_x_tensor = torch.cat(((x_tensor[x_tensor <= 40]), (x_tensor[x_tensor >= 60])), 0)
     filtered_y_tensor = torch.cat(((y_tensor[x_tensor <= 40]), (y_tensor[x_tensor >= 60])), 0)
-    print("filtered_x_tensor(%s): %s" % (filtered_x_tensor.shape, filtered_x_tensor))
-    print("filtered_y_tensor(%s): %s" % (filtered_y_tensor.shape, filtered_y_tensor))
+    #print("filtered_x_tensor(%s): %s" % (filtered_x_tensor.shape, filtered_x_tensor))
+    #print("filtered_y_tensor(%s): %s" % (filtered_y_tensor.shape, filtered_y_tensor))
+    print_statistics(filtered_x_tensor, filtered_y_tensor)
+    train_and_test_nn_possession(filtered_x_tensor, filtered_y_tensor)
 
-    print_statistics(filtered_x_tensor, filtered_x_tensor)
-
-    x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(filtered_x_tensor, filtered_y_tensor)
-    nn_model = TwoLayerNN(1, 20, 1, nn.ReLU())
-    optimizer = optim.Adam(nn_model.parameters(), lr=1e-2)
-    nn_loss_fn = nn.MSELoss()
-    train_nn(3000, nn_model, optimizer, nn_loss_fn, x_train_tensor, y_train_tensor, 1, 1)
-
-    # model each set and calculate loss
-    nn_model_set(x_train_tensor, y_train_tensor, nn_model, nn_loss_fn, "TRAIN SET")
-    nn_plot_test_test(x_train_tensor, y_train_tensor, nn_model, "TRAIN SET")
-
-    nn_model_set(x_test_tensor, y_test_tensor, nn_model, nn_loss_fn, "TEST SET")
-    nn_plot_test_test(x_test_tensor, y_test_tensor, nn_model, "TEST SET")
+    # predict based on a multiple feature: possession
+    train_and_test_nn_multi()
 
 
 if __name__ == "__main__":
