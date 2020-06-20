@@ -181,4 +181,33 @@ select home_team_possession, possession from match where league_id in (1729, 780
 
 select count(*) from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession = 0  -- 4227
 select * from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession = 0
+select * from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession < 30
+
+-- AVG(home_team_possession)
+select m.league_id, l.name, m.season, m.home_team_api_id, t.team_long_name, 
+        avg(home_team_goal) as home_team_goal_avg, avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, avg(home_team_possession) as home_team_possession_avg
+from match m, team t, league l 
+where league_id in (1729, 7809, 10257, 21518) and home_team_possession > 0 and m.home_team_api_id = t.team_api_id and m.league_id = l.id
+group by m.country_id, m.league_id, m.season, m.home_team_api_id
+
+-- THE AVG QUERY
+select league_id, season, home_team_api_id, 
+        avg(home_team_goal) as home_team_goal_avg, avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, avg(home_team_possession) as home_team_possession_avg
+from match
+where league_id in (1729, 7809, 10257, 21518) and home_team_possession > 0
+group by country_id, league_id, season, home_team_api_id
+
+select id, country_id, league_id, season, date, match_api_id, home_team_api_id, away_team_api_id, home_team_goal, away_team_goal, home_team_possession
+from match where home_team_api_id = 8455 and season = "2015/2016"
+order by league_id, season, home_team_api_id -- CHELSEA games in 2015/2016
+
+select id, country_id, league_id, season, date, match_api_id, home_team_api_id, away_team_api_id, home_team_goal, away_team_goal, home_team_possession
+from match where home_team_api_id = 8667 and season = "2008/2009"
+order by league_id, season, home_team_api_id -- team with matches with ZERO possession
+
+select league_id, season, home_team_api_id, 
+        avg(home_team_goal) as home_team_goal_avg, avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, avg(home_team_possession) as home_team_possession_avg
+from match
+where league_id in (1729, 7809, 10257, 21518) and home_team_api_id = 8667 and home_team_possession > 0
+group by country_id, league_id, season, home_team_api_id
 
