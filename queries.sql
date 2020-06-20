@@ -99,3 +99,86 @@ select id, league_id, season, stage, date, match_api_id, home_team_api_id, away_
 select id, league_id, season, stage, date, match_api_id, home_team_api_id, away_team_api_id, shoton from match where match_api_id = 1989053
 select id, league_id, season, stage, date, match_api_id, home_team_api_id, away_team_api_id, shotoff from match where match_api_id = 1989053
 select id, league_id, season, stage, date, match_api_id, home_team_api_id, away_team_api_id, corner from match where match_api_id = 1989053
+
+----------------------------------------
+-- AVERAGES
+
+select * from country -- 11
+select * from league -- 11 - country_id
+select * from team  -- 299 - NO league or country id
+
+select * from match where league_id = 1 order by season
+select * from match m where home_team_api_id = 8342 and m.season="2015/2016" -- Club Brugge KV - CLB 
+select distinct(m.home_team_api_id), m.country_id, m.league_id, t.team_long_name, t.team_short_name from match m, team t where m.league_id = 1 and m.season="2015/2016" and m.home_team_api_id = t.team_api_id
+
+-- NO ENOUGH INFO!!!
+select * from match m where league_id = 1 order by season       -- Belgium -> NO INFO!!!
+select * from match m where league_id = 4769 order by season    -- France -> NO INFO on 50% of matches!!!
+select * from match m where league_id = 13274 order by season   -- Netherlands -> NO INFO on 75% of matches!!!
+select * from match m where league_id = 15722 order by season   -- Poland -> NO INFO !!!
+select * from match m where league_id = 17642 order by season   -- Portugal -> NO INFO !!!
+select * from match m where league_id = 19694 order by season   -- Scotland -> NO INFO !!!
+select * from match m where league_id = 24558 order by season   -- Switzerland -> NO INFO on 90% of matches!!!
+
+-- ENOUGH INFO
+select * from match m where league_id = 1729 order by season    -- England -> ALMOST ALL INFO
+select * from match m where league_id = 7809 order by season    -- Germany -> ALMOST ALL INFO
+select * from match m where league_id = 10257 order by season   -- Italy -> ALMOST ALL INFO
+select * from match m where league_id = 21518 order by season   -- Spain -> ALMOST ALL INFO
+
+-- 78 teams * 8 seasons = 624 averages
+select distinct(m.home_team_api_id), m.country_id, m.league_id, t.team_long_name, t.team_short_name from match m, team t where m.league_id = 1729  and m.season="2015/2016" and m.home_team_api_id = t.team_api_id -- 20 teams
+select distinct(m.home_team_api_id), m.country_id, m.league_id, t.team_long_name, t.team_short_name from match m, team t where m.league_id = 7809  and m.season="2015/2016" and m.home_team_api_id = t.team_api_id -- 18 teams
+select distinct(m.home_team_api_id), m.country_id, m.league_id, t.team_long_name, t.team_short_name from match m, team t where m.league_id = 10257 and m.season="2015/2016" and m.home_team_api_id = t.team_api_id -- 20 teams
+select distinct(m.home_team_api_id), m.country_id, m.league_id, t.team_long_name, t.team_short_name from match m, team t where m.league_id = 21518 and m.season="2015/2016" and m.home_team_api_id = t.team_api_id -- 20 teams
+
+-- 129 DIFFERENT teams ALL seasons
+select distinct(m.home_team_api_id), t.team_long_name, l.name from match m, team t, league l
+where m.league_id in (1729, 7809, 10257, 21518) and m.home_team_api_id = t.team_api_id and m.league_id = l.id
+order by m.league_id
+
+-- Games per league per season
+select count(*) from match where league_id in (1729) and season = "2008/2009" -- 20 * 38/2 = 380
+select count(*) from match where league_id in (7809) and season = "2008/2009" -- 18 * 34/2 = 306
+select count(*) from match where league_id in (10257) and season = "2008/2009" -- 20 * 38/2 = 380
+select count(*) from match where league_id in (21518) and season = "2008/2009" -- 20 * 38/2 = 380
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) and season = "2008/2009" -- 380*3 + 306 = 1446
+
+-- ALL games in ALL 4 seasons
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) -- 1446 * 8 = 11568 ~ 11545
+select * from match where league_id in (1729, 7809, 10257, 21518) -- 1446 * 8 = 11568 ~ 11545
+select home_team_possession, possession from match where league_id in (1729, 7809, 10257, 21518) -- 1446 * 8 = 11568 ~ 11545
+
+select id, country_id, league_id, season, date, match_api_id, home_team_api_id, away_team_api_id, home_team_goal, away_team_goal, goal, shoton, shotoff, possession 
+from match where league_id in (1729, 7809, 10257, 21518) order by league_id, season, home_team_api_id
+
+select id, country_id, league_id, season, home_team_api_id, home_team_goal, away_team_goal, (home_team_goal - away_team_goal) as GD, possession
+from match where league_id in (1729, 7809, 10257, 21518) order by league_id, season, home_team_api_id
+
+-- 78 teams * 8 seasons = 624 averages
+select m.league_id, l.name, m.season, m.home_team_api_id, t.team_long_name, sum(home_team_goal), avg(home_team_goal), avg(away_team_goal), avg(home_team_goal - away_team_goal) as AVG_GD
+from match m, team t, league l
+where league_id in (1729, 7809, 10257, 21518) and m.home_team_api_id = t.team_api_id and m.league_id = l.id
+group by m.country_id, m.league_id, m.season, m.home_team_api_id
+
+select id, country_id, league_id, season, date, match_api_id, home_team_api_id, away_team_api_id, home_team_goal, away_team_goal, goal, shoton, shotoff, possession 
+from match where home_team_api_id = 8455 and season = "2008/2009"
+order by league_id, season, home_team_api_id -- CHELSEA games in 2008/2009
+
+ALTER TABLE match ADD home_team_possession INTEGER NULL
+select * from match
+ALTER TABLE match DROP COLUMN home_team_possession -- NOT allowed in SQLite
+
+select count(*) from match where league_id not in (1729, 7809, 10257, 21518) -- 14434
+select count(*) from match where league_id not in (1729, 7809, 10257, 21518) and home_team_possession is null -- 14434
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) -- 1446 * 8 = 11568 ~ 11545
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession is not null -- 11545
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession is null -- 0
+select count(*) from match -- 14434 + 11545 = 25979
+
+select * from match where league_id in (1729, 7809, 10257, 21518) 
+select home_team_possession, possession from match where league_id in (1729, 7809, 10257, 21518)
+
+select count(*) from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession = 0  -- 4227
+select * from match where league_id in (1729, 7809, 10257, 21518) and home_team_possession = 0
+

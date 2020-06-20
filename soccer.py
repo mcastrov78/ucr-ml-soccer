@@ -7,10 +7,15 @@ import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
 
-DB_FILENAME = "soccer.sqlite"
+DB_FILENAME = "database.sqlite"
 CSV_FILENAME = "soccer.csv"
-LEAGUE_ID = 1729
+CSV_AVG_FILENAME = "soccer_avg.csv"
 
+LEAGUE_ID = 1729
+LEAGUES_IDS = (1729, 7809, 10257, 21518)
+
+
+# ----------------- ANALYZE ONE LEAGUE -----------------
 
 def get_dataframe(db_filename, league_id):
     """
@@ -296,6 +301,11 @@ def train_and_test_nn_possession(x_tensor, y_tensor):
 
 
 def train_and_test_nn_multi():
+    # get dataframe from DB and save relevant data to a CSV file
+    soccer_df = get_dataframe(DB_FILENAME, LEAGUE_ID)
+    save_data_to_csv(soccer_df, CSV_FILENAME)
+
+    # predict based on a single feature: possession
     x_tensor, y_tensor = read_csv_enhanced(CSV_FILENAME, ("goal_diff", "possession_home", "shots_on_diff"))
     x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
 
@@ -317,11 +327,11 @@ def train_and_test_nn_multi():
     # nn_plot_test_test(x_test_tensor, y_test_tensor, model, "NN2 - TEST SET")
 
 
-def main():
+def analyze_one_league():
     """
-    Main method.
+    First version of the project. Analyze results in only one league.
 
-    :return: None
+    :return: None.
     """
     # get dataframe from DB and save relevant data to a CSV file
     soccer_df = get_dataframe(DB_FILENAME, LEAGUE_ID)
@@ -333,19 +343,143 @@ def main():
     print_statistics(x_tensor, y_tensor)
 
     train_and_test_linear_possession(x_tensor, y_tensor)
+    train_and_test_nn_possession(x_tensor, y_tensor)
+    train_and_test_nn_multi()
 
+
+# ----------------- ANALYZE AVERAGES -----------------
+
+def add_columns_to_db(db_filename):
+    """
+    Add new columns to the database that are required for further analysis.
+
+    :param db_filename: DB filename to read from
+    :return: None.
+    """
+    conn = sqlite3.connect(db_filename)
+
+    # alter table to add new home_team_possession column, if not already there
+    try:
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE match ADD home_team_possession INTEGER NULL")
+        conn.commit()
+        print("home_team_possession was added successfully!!!")
+    except sqlite3.OperationalError:
+        print("home_team_possession was added previously ...")
+
+    conn.close()
+
+
+def populate_new_columns(db_filename):
+    """
+    Populate new columns that are required for further analysis.
+
+    :param db_filename: DB filename to read from
+    :return: None.
+    """
+    conn = sqlite3.connect(db_filename)
+
+    # select all games in the chosen leagues
+    select_statement = """select id, league_id, season, home_team_api_id, home_team_goal, away_team_goal, (home_team_goal - away_team_goal) as GD, possession
+                from match where league_id in {} order by league_id, season, home_team_api_id"""
+    results = conn.execute(select_statement.format(LEAGUES_IDS))
+
+    # update selected rows to include the extracted home_team_possession value
+    current_row = results.fetchone()
+    row_count = 0
+    while current_row is not None:
+        print(current_row)
+        # set home_team_possession to zero where possession is null, get real value where available
+        home_team_possession_xml = current_row[7]
+        home_team_possession = 0
+        if home_team_possession_xml is not None:
+            home_team_possession = get_match_home_possession(current_row[7])
+
+        update_statement = "UPDATE match SET home_team_possession = {} WHERE id = {}"
+        conn.execute(update_statement.format(home_team_possession, current_row[0]))
+        conn.commit()
+
+        current_row = results.fetchone()
+        row_count += 1
+
+    print("Number of rows: %s" % row_count)
+    conn.close()
+
+
+def get_match_home_possession(possession_xml):
+    """
+    Extract home possession value from original XML string provided.
+
+    :param possession_xml:
+    :return: home possession value as in integer
+    """
+    home_team_possession = 0
+    possession_tree = ET.fromstring(possession_xml)
+    number_of_values = len(list(possession_tree))
+
+    for child_number, child in enumerate(possession_tree):
+        if child_number == number_of_values - 1:
+            if child.find("elapsed") is not None \
+                    and child.find("homepos") is not None and child.find("awaypos") is not None:
+                home_team_possession = child.find("homepos").text
+
+    return home_team_possession
+
+
+def get_averages_dataframe(db_filename, leagues_ids):
+    """
+    Query the DB and return a Pandas dataframe with all data related to leagues_ids.
+
+    :param db_filename: DB filename to read from
+    :param leagues_ids: leagues IDs for which we need matches data
+    :return: a Pandas dataframe with all data related to leagues_ids
+    """
+    conn = sqlite3.connect(db_filename)
+    soccer_df = pd.read_sql("select league_id, season, home_team_api_id, avg(home_team_goal) as home_team_goal_avg, "
+                            "avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, "
+                            "avg(home_team_possession) as home_team_possession_avg "
+                            "from match where league_id in {} and home_team_possession > 0 "
+                            "group by country_id, league_id, season, home_team_api_id".format(leagues_ids), conn)
+    conn.close()
+    return soccer_df
+
+
+def analyze_leagues_averages():
+    """
+    Second version of the project. Analyze results in several leagues.
+
+    :return: None.
+    """
+    #add_columns_to_db(DB_FILENAME)
+    #populate_new_columns(DB_FILENAME)
+    soccer_df = get_averages_dataframe(DB_FILENAME, LEAGUES_IDS)
+
+    print("\nlen(soccer_df): %s " % len(soccer_df))
+    print("\nsoccer_df: %s " % soccer_df)
+
+    soccer_df.to_csv(CSV_AVG_FILENAME, index=False,
+                     columns=["league_id", "season", "home_team_api_id", "home_team_goal_avg", "away_team_goal_avg",
+                              "goal_difference_avg", "home_team_possession_avg"])
+
+    # predict based on a single feature: possession
+    x_tensor, y_tensor = read_csv_enhanced(CSV_AVG_FILENAME, ("goal_difference_avg", "home_team_possession_avg"))
+    x_tensor = x_tensor.view(-1)
+    print_statistics(x_tensor, y_tensor)
+
+    #train_and_test_linear_possession(x_tensor, y_tensor)
     train_and_test_nn_possession(x_tensor, y_tensor)
 
-    # predict based on a single feature: possession, BUT filter OUT matches where 40 >= possession <= 60
-    filtered_x_tensor = torch.cat(((x_tensor[x_tensor <= 40]), (x_tensor[x_tensor >= 60])), 0)
-    filtered_y_tensor = torch.cat(((y_tensor[x_tensor <= 40]), (y_tensor[x_tensor >= 60])), 0)
-    #print("filtered_x_tensor(%s): %s" % (filtered_x_tensor.shape, filtered_x_tensor))
-    #print("filtered_y_tensor(%s): %s" % (filtered_y_tensor.shape, filtered_y_tensor))
-    print_statistics(filtered_x_tensor, filtered_y_tensor)
-    train_and_test_nn_possession(filtered_x_tensor, filtered_y_tensor)
 
-    # predict based on a multiple feature: possession
-    train_and_test_nn_multi()
+# ----------------- ANALYZE AVERAGES -----------------
+
+def main():
+    """
+    Main method.
+
+    :return: None
+    """
+    #analyze_one_league()
+    analyze_leagues_averages()
 
 
 if __name__ == "__main__":
