@@ -342,9 +342,9 @@ def analyze_one_league():
     x_tensor = x_tensor.view(-1)
     print_statistics(x_tensor, y_tensor)
 
-    train_and_test_linear_possession(x_tensor, y_tensor)
+    #train_and_test_linear_possession(x_tensor, y_tensor)
     train_and_test_nn_possession(x_tensor, y_tensor)
-    train_and_test_nn_multi()
+    #train_and_test_nn_multi()
 
 
 # ----------------- ANALYZE AVERAGES -----------------
@@ -478,7 +478,7 @@ def main():
 
     :return: None
     """
-    #analyze_one_league()
+    analyze_one_league()
     analyze_leagues_averages()
 
 
