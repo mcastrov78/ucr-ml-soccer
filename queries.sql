@@ -188,7 +188,7 @@ select m.league_id, l.name, m.season, m.home_team_api_id, t.team_long_name,
         avg(home_team_goal) as home_team_goal_avg, avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, avg(home_team_possession) as home_team_possession_avg
 from match m, team t, league l 
 where league_id in (1729, 7809, 10257, 21518) and home_team_possession > 0 and m.home_team_api_id = t.team_api_id and m.league_id = l.id
-group by m.country_id, m.league_id, m.season, m.home_team_api_id
+group by m.country_id, m.league_id, m.season, m.home_team_api_id -- 508 (home_team_possession > )
 
 -- THE AVG QUERY
 select league_id, season, home_team_api_id, 

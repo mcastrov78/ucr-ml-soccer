@@ -7,15 +7,15 @@ import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
 
-DB_FILENAME = "database.sqlite"
-CSV_FILENAME = "soccer.csv"
-CSV_AVG_FILENAME = "soccer_avg.csv"
+DB_FILENAME = "database.sqlite"         # European Soccer Database filename (https://www.kaggle.com/hugomathien/soccer)
+CSV_FILENAME = "soccer.csv"             # output file for Approach 1 (only ELP)
+CSV_AVG_FILENAME = "soccer_avg.csv"     # output file for Approach 2 (ELP, )
 
-LEAGUE_ID = 1729
-LEAGUES_IDS = (1729, 7809, 10257, 21518)
+LEAGUE_ID = 1729                            # league IDs for Approach 1 (only ELP)
+LEAGUES_IDS = (1729, 7809, 10257, 21518)    # league IDs for Approach 2 (ELP, Bundesliga, Italy Serie A, La Liga BBVA)
 
 
-# ----------------- ANALYZE ONE LEAGUE -----------------
+# ----------------- APPROACH 1: ANALYZE ONLY ONE LEAGUE -----------------
 
 def get_dataframe(db_filename, league_id):
     """
@@ -250,7 +250,13 @@ def nn_plot_test_set(x_tensor, y_tensor, nn_model, set_name):
 
 
 def print_statistics(x_tensor, y_tensor):
-    # print some info and  statistics
+    """
+    Prints some info and  statistics.
+
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :return: None
+    """
     print("\nMax Pos: %s - GD: %s" % (torch.max(x_tensor), torch.max(y_tensor.type(torch.FloatTensor))))
     print("Min Pos: %s - GD: %s" % (torch.min(x_tensor), torch.min(y_tensor.type(torch.FloatTensor))))
     print("Mean Pos: %s - GD: %s" % (torch.mean(x_tensor), torch.mean(y_tensor.type(torch.FloatTensor))))
@@ -259,6 +265,13 @@ def print_statistics(x_tensor, y_tensor):
 
 
 def train_and_test_linear_possession(x_tensor, y_tensor):
+    """
+    Train and test LINEAR model.
+
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :return: None
+    """
     x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
 
     model = nn.Linear(1, 1)
@@ -280,6 +293,13 @@ def train_and_test_linear_possession(x_tensor, y_tensor):
 
 
 def train_and_test_nn_possession(x_tensor, y_tensor):
+    """
+    Train and test NEURAL NETWORK with linear model.
+
+    :param x_tensor: X tensor
+    :param y_tensor: Y tensor
+    :return: None
+    """
     x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor = create_train_test_sets(x_tensor, y_tensor)
 
     model = TwoLayerNN(1, 20, 1, nn.ReLU())
@@ -301,6 +321,12 @@ def train_and_test_nn_possession(x_tensor, y_tensor):
 
 
 def train_and_test_nn_multi():
+    """
+    Train and test neural network with linear model using multiple features.
+
+    :return: None
+    """
+
     # get dataframe from DB and save relevant data to a CSV file
     soccer_df = get_dataframe(DB_FILENAME, LEAGUE_ID)
     save_data_to_csv(soccer_df, CSV_FILENAME)
@@ -342,12 +368,13 @@ def analyze_one_league():
     x_tensor = x_tensor.view(-1)
     print_statistics(x_tensor, y_tensor)
 
+    # NOTE: we implemented several approaches, but for the final version we only care about the NN with one feature
     #train_and_test_linear_possession(x_tensor, y_tensor)
     train_and_test_nn_possession(x_tensor, y_tensor)
     #train_and_test_nn_multi()
 
 
-# ----------------- ANALYZE AVERAGES -----------------
+# ----------------- APPROACH 2: ANALYZE AVERAGES FOR 4 LEAGUES -----------------
 
 def add_columns_to_db(db_filename):
     """
@@ -466,7 +493,6 @@ def analyze_leagues_averages():
     x_tensor = x_tensor.view(-1)
     print_statistics(x_tensor, y_tensor)
 
-    #train_and_test_linear_possession(x_tensor, y_tensor)
     train_and_test_nn_possession(x_tensor, y_tensor)
 
 
