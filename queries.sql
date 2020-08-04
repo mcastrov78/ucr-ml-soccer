@@ -205,9 +205,16 @@ select id, country_id, league_id, season, date, match_api_id, home_team_api_id, 
 from match where home_team_api_id = 8667 and season = "2008/2009"
 order by league_id, season, home_team_api_id -- team with matches with ZERO possession
 
-select league_id, season, home_team_api_id, 
-        avg(home_team_goal) as home_team_goal_avg, avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, avg(home_team_possession) as home_team_possession_avg
+select league_id, season, home_team_api_id, avg(home_team_goal) as home_team_goal_avg, 
+        avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, 
+        avg(home_team_possession) as home_team_possession_avg
 from match
 where league_id in (1729, 7809, 10257, 21518) and home_team_api_id = 8667 and home_team_possession > 0
 group by country_id, league_id, season, home_team_api_id
 
+select league_id, season, home_team_api_id, avg(home_team_goal) as home_team_goal_avg, 
+        avg(away_team_goal) as away_team_goal_avg, avg(home_team_goal - away_team_goal)  as goal_difference_avg, 
+        avg(home_team_possession) as home_team_possession_avg
+from match
+where league_id in (1729, 7809, 10257, 21518) and home_team_possession > 0
+group by country_id, league_id, season, home_team_api_id
